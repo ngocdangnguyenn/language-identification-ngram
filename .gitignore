@@ -1,0 +1,16 @@
+# Prediction files (intermediate results)
+*-predict.txt
+*-pred.txt
+*predictions.txt
+*_pred.txt
+dev_clean.txt
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.vscode/
+.idea/
+*.swp
