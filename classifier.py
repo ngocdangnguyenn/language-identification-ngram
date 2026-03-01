@@ -67,7 +67,6 @@ def main():
         for line in f:
             whole_tab = line.strip().split('\t')
             text = whole_tab[0]
-
             pred_lang = predict(text, lang_features)
             print(f"{text}\t{pred_lang}")
             fic_dest.write(text + "\t" + pred_lang + "\n")
