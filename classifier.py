@@ -58,31 +58,17 @@ def main():
     
     train_file = sys.argv[1]
     test_file = sys.argv[2]
+    true_test_filename = test_file[:-4]
     
     # Train
     lang_features = train(train_file)
-    lang_count = 0
-    lang_right = 0
-    false_sents = []
     # Predict
-    with open(test_file, 'r', encoding='utf-8') as f:
+    with open(test_file, 'r', encoding='utf-8') as f, open(true_test_filename + "-pred1.txt", "w", encoding = "utf-8") as fic_dest:
         for line in f:
             whole_tab = line.strip().split('\t')
             text = whole_tab[0]
-            if test_file == "dev.txt" :    #if we use this corpus then we could obtain stats
-                true_lang = whole_tab[1]
-                lang_count+=1
             pred_lang = predict(text, lang_features)
-            
-            if (test_file == "dev.txt") :
-                print(f"{text}\t{pred_lang}\tvraie réponse : {true_lang}")
-                if pred_lang == true_lang:
-                    lang_right += 1
-                else : 
-                    false_sents.append((text, pred_lang, true_lang))
-            else :
-                print(f"{text}\t{pred_lang}")
-    system_score = (lang_right/lang_count) * 100
-    print("Le système développé a obtenu un score de ", system_score, "%.")
+            print(f"{text}\t{pred_lang}")
+            fic_dest.write(text + "\t" + pred_lang + "\n")
 if __name__ == '__main__':
     main()
