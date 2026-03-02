@@ -77,6 +77,7 @@ class DocCollection(object):
       for line in fic :
         processed_line = line.strip().split("\t")
         self.documents_vectors.append(DocVector(processed_line[0], processed_line[1]))
+        self.has_been_factorised = False
       
   def knearest(self, anotherDoc, k=10):
     """
@@ -91,6 +92,39 @@ class DocCollection(object):
     counter = Counter()
     counter.update(list_of_neighbours)
     return counter.most_common(1)[0][0][1]
+  
+  ###########Extension : gathering all documents which share the same label in a single document to (try to) be less slow
+  def gather_all(self, current_lang):
+    result = []
+    for doc_vector in self.documents_vectors:
+      if doc_vector.category == current_lang : 
+        result.append(doc_vector)
+    return result
+  
+  def supress_all(self, tab):
+    for doc in tab : 
+        self.documents_vectors.remove(doc)
+
+  def concat_texts(self, documents) :
+    current_doc= DocVector("", documents[0].category)
+    for doc in documents : 
+      current_doc.vector += doc.vector
+    return current_doc
+
+  def fact_colletion(self):
+    """To factorize all DocVectors which share the same label into a big DocVector"""
+    if not self.has_been_factorised : 
+      new_collection = []
+      for doc_vector in self.documents_vectors : 
+        current_lang = doc_vector.category
+        documents_with_current_lang = self.gather_all(current_lang)
+        self.supress_all(documents_with_current_lang)
+        new_document = self.concat_texts(documents_with_current_lang)
+        new_collection.append(new_document)
+      self.documents_vectors = new_collection
+      self.has_been_factorised = True
+      
+      
 
 ################################################################################
 
@@ -106,5 +140,12 @@ if __name__ == "__main__" : # python way to declare "main" function
 
   # Create document collection from training corpus file
   docCollection = DocCollection(trainfilename) 
+  docCollection.fact_colletion()  #uncomment this to make a unfactorised model
+  if docCollection.has_been_factorised :
+    suf_suppl = "_gathered"
+  else :
+    suf_suppl = ""
+
   # Save the list of vectorized documents into a binary file named "model.pkl"    
-  pickle.dump(docCollection, open("model.pkl", 'wb')) 
+  pickle.dump(docCollection, open("model" + suf_suppl + ".pkl", 'wb')) 
+  print(len(docCollection.documents_vectors))
