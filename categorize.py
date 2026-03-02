@@ -25,7 +25,7 @@ if __name__ == "__main__" : # python way to declare "main" function
   truename = devfilename[:-4]
     
       
-with open(devfilename, "r", encoding="utf-8") as fic, open(truename + "-pred.txt", "w", encoding="utf-8") as fic_dest:
+with open(devfilename, "r", encoding="utf-8") as fic, open(truename + "-pred-knearest.txt", "w", encoding="utf-8") as fic_dest:
   for file in fic :
     whole_tab = file.split("\t")
     text = whole_tab[0]
