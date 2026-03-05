@@ -45,10 +45,10 @@ if __name__ == "__main__" : # python way to declare "main" function
   training_data = vector.transform(texts)
   model = MultinomialNB()
   model.fit(training_data, languages)
-  with open(devfilename, "r", encoding="utf-8") as fic, open(truename + "-pred-bayes.txt", "w", encoding="utf-8") as fic_dest:
+  with open(devfilename, "r", encoding="utf-8") as fic, open("results/" + truename + "-pred-bayes.txt", "w", encoding="utf-8") as fic_dest:
    for line in fic :
      whole_line = line.split("\t")
      line_text = whole_line[0]
      exploitable_line = vector.transform([line_text])
-     fic_dest.write(line_text + "\t" + model.predict(exploitable_line)[0] )
+     fic_dest.write(line_text + "\t" + model.predict(exploitable_line)[0] + "\n")
             

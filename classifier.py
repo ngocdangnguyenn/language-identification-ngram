@@ -24,7 +24,7 @@ n = 3
 if ngram_func == extract_words_ngrams:
     suff_suppl = "of-words"
 elif ngram_func == extract_char_ngrams:
-    suff_supp = "of-chars"
+    suff_suppl = "of-chars"
 
 
 def train(train_file):
@@ -68,7 +68,7 @@ def main():
     # Train
     lang_features = train(train_file)
     # Predict
-    with open(test_file, 'r', encoding='utf-8') as f, open(true_test_filename + "-pred-" + n +"-grams" + suff_suppl + ".txt", "w", encoding = "utf-8") as fic_dest:
+    with open(test_file, 'r', encoding='utf-8') as f, open("results/" + true_test_filename + "-pred-" + str(n) + "-grams-" + suff_suppl + ".txt", "w", encoding = "utf-8") as fic_dest:
         for line in f:
             whole_tab = line.strip().split('\t')
             text = whole_tab[0]
