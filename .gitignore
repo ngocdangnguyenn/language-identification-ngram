@@ -6,10 +6,10 @@
 dev_clean.txt
 
 # Model files
-models/*.pkl
+# models/*.pkl
 
 # Result files
-results/*-pred*.txt
+# results/*-pred*.txt
 
 # Python cache
 __pycache__/
