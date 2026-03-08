@@ -144,6 +144,7 @@ if __name__ == "__main__" : # python way to declare "main" function
     exit(-1)  
     
   trainfilename = sys.argv[1]
+  true_trainfilename = trainfilename[:-4]
 
   # Create document collection from training corpus file
   docCollection = DocCollection(trainfilename) #you can add True as the end parameter to generate models which counts letters
@@ -156,5 +157,5 @@ if __name__ == "__main__" : # python way to declare "main" function
     suf_suppl += "_letter"
 
   # Save the list of vectorized documents into a binary file named "model.pkl"    
-  pickle.dump(docCollection, open("models/model" + suf_suppl + ".pkl", 'wb')) 
+  pickle.dump(docCollection, open("models/model_"+ trainfilename + suf_suppl + ".pkl", 'wb')) 
   print(len(docCollection.documents_vectors))
