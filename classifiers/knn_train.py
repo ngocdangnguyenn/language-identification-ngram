@@ -18,7 +18,7 @@ class DocVector(object) :
   Represents document with associated vector (Counter dict) and category label (str).
   """
    
-  def __init__(self, text, category):
+  def __init__(self, text, category, letter_version = False):
     """
     Creates a vectorised document by counting all words in the `text`.
     """
@@ -27,9 +27,15 @@ class DocVector(object) :
     tokenizer = MosesTokenizer()
     text_in_sentences = nltk.tokenize.sent_tokenize(text)
     counter = Counter()
-    for sentence in text_in_sentences :
-      tokenised_sentence = tokenizer.tokenize(sentence, escape=False)
-      counter.update(tokenised_sentence)
+    if not letter_version :
+      for sentence in text_in_sentences :
+        tokenised_sentence = tokenizer.tokenize(sentence, escape=False)
+        counter.update(tokenised_sentence)
+    else :
+      for sentence in text_in_sentences :
+        tokenised_sentence = tokenizer.tokenize(sentence, escape=False)
+        for word in tokenised_sentence :
+          counter.update(word)
     self.vector = counter
     self.normvalue = None
 
@@ -68,7 +74,7 @@ class DocCollection(object):
   Represents a document collection, that is, a list of `DocVector` objects
   """
     
-  def __init__(self, filename):
+  def __init__(self, filename, letter_version = False):
     """
     Read doc collection from `filename`, and initialise list of `DocVector` objects.
     """        
@@ -76,7 +82,8 @@ class DocCollection(object):
       self.documents_vectors = []
       for line in fic :
         processed_line = line.strip().split("\t")
-        self.documents_vectors.append(DocVector(processed_line[0], processed_line[1]))
+        self.documents_vectors.append(DocVector(processed_line[0], processed_line[1], letter_version))
+        self.is_a_letter_model = letter_version
         self.has_been_factorised = False
       
   def knearest(self, anotherDoc, k=10):
@@ -139,12 +146,14 @@ if __name__ == "__main__" : # python way to declare "main" function
   trainfilename = sys.argv[1]
 
   # Create document collection from training corpus file
-  docCollection = DocCollection(trainfilename) 
+  docCollection = DocCollection(trainfilename) #you can add True as the end parameter to generate models which counts letters
   docCollection.fact_colletion()  #uncomment this to make a unfactorised model
   if docCollection.has_been_factorised :
     suf_suppl = "_gathered"
   else :
     suf_suppl = ""
+  if docCollection.is_a_letter_model : 
+    suf_suppl += "_letter"
 
   # Save the list of vectorized documents into a binary file named "model.pkl"    
   pickle.dump(docCollection, open("models/model" + suf_suppl + ".pkl", 'wb')) 
