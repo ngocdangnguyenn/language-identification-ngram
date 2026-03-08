@@ -5,7 +5,7 @@ Script to classify the texts in the dev file.
 """
 
 import sys
-from doc2vec import DocCollection, DocVector
+from knn_train import DocCollection, DocVector
 from collections import Counter
 import pickle
 
