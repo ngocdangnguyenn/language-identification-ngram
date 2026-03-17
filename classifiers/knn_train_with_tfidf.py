@@ -18,7 +18,20 @@ class DocCollection(object):
   def __init__(self, filename, letter_version = False):
     """
     Read doc collection from `filename`, and initialise list of `DocVector` objects.
-    """        
+    """
+    def test_all_words_from(doc_vector):
+      for word in doc_vector.vector.keys() :
+          if word not in self.idf.keys() :
+              self.idf[word] = log(corpus_length/(count_how_many_docs_contain(word)))
+          doc_vector.vector[word] = doc_vector.vector[word] * self.idf[word]
+
+    def count_how_many_docs_contain(word):
+      nb_appereances = 0
+      for doc in self.doc_collection.documents_vectors :
+          if word in doc.vector.keys():
+              nb_appereances += 1
+      return nb_appereances
+            
     self.has_been_factorised = False
     self.doc_collection = vanilla_DocCollection(filename, letter_version)
     self.modify_doc_vectors()
@@ -29,18 +42,7 @@ class DocCollection(object):
        test_all_words_from(doc)
 
 
-    def test_all_words_from(doc_vector):
-        for word in doc_vector.vector.keys() :
-            if word not in self.idf.keys() :
-                self.idf[word] = log(corpus_length/(count_how_many_docs_contain(word)))
-            doc_vector.vector[word] = doc_vector.vector[word] * self.idf[word]
-
-    def count_how_many_docs_contain(word):
-        nb_appereances = 0
-        for doc in self.doc_collection.documents_vectors :
-            if word in doc.vector.values():
-                nb_appereances += 1
-        return nb_appereances
+    
       
   def knearest(self, anotherDoc, k=10):
     """
@@ -85,13 +87,12 @@ if __name__ == "__main__" : # python way to declare "main" function
 
   # Create document collection from training corpus file
   docCollection = DocCollection(trainfilename) #you can add True as the end parameter to generate models which counts letters
-  docCollection.fact_colletion()  #uncomment this to make a unfactorised model
-  suf_suppl = "idf"
+  docCollection.fact_colletion()  #(un)comment this to make a unfactorised model
+  suf_suppl = "-idf"
   if docCollection.has_been_factorised :
-    suf_suppl = "_gathered"
+    suf_suppl += "_gathered"
   if docCollection.is_a_letter_model : 
     suf_suppl += "_letter"
 
   # Save the list of vectorized documents into a binary file named "model.pkl"    
-  pickle.dump(docCollection, open("models/model"+ trainfilename + suf_suppl + ".pkl", 'wb')) 
-  print(len(docCollection.documents_vectors))
+  pickle.dump(docCollection, open("models/model-"+ true_trainfilename + suf_suppl + ".pkl", 'wb')) 

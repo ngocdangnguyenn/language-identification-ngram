@@ -157,5 +157,4 @@ if __name__ == "__main__" : # python way to declare "main" function
     suf_suppl += "_letter"
 
   # Save the list of vectorized documents into a binary file named "model.pkl"    
-  pickle.dump(docCollection, open("models/model_"+ trainfilename + suf_suppl + ".pkl", 'wb')) 
-  print(len(docCollection.documents_vectors))
+  pickle.dump(docCollection, open("models/model_"+ true_trainfilename + suf_suppl + ".pkl", 'wb')) 
