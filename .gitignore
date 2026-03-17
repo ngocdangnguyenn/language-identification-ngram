@@ -5,8 +5,8 @@
 *_pred.txt
 dev_clean.txt
 
-# Model files
-# models/*.pkl
+# Model files (large binaries, not tracked in git)
+models/*.pkl
 
 # Result files
 # results/*-pred*.txt

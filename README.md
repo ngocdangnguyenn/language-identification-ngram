@@ -28,12 +28,18 @@ Cette méthode assigne une langue au hasard parmi les 21 classes possibles. Elle
 On extrait des n-grammes (de caractères ou de mots) fréquents pour chaque langue dans `train.txt`, puis on choisit la langue qui a l’intersection la plus forte avec le texte à classer. L’approche est simple et lisible, mais sa qualité dépend fortement du choix des paramètres (`n`, `top_k`).
 
 3. **k plus proches voisins (kNN)**  
-Chaque texte est représenté sous forme de vecteur de fréquences, puis comparé aux exemples d’entraînement avec une similarité cosinus. La classe est décidée à partir des voisins les plus proches. Cette méthode est une bonne référence classique, mais elle est plus coûteuse en prédiction.
+Chaque texte est représenté sous forme de vecteur de fréquences avec un comptage de mots ou de lettres, puis comparé aux exemples d’entraînement avec une similarité cosinus. La classe est décidée à partir des voisins les plus proches. Cette méthode est une bonne référence classique, mais elle est plus coûteuse en prédiction. Une variante avec pondération TF-IDF est également testée.
 
-4. **Naive Bayes (scikit-learn)**  
-Les textes sont vectorisés avec `CountVectorizer` (n-grammes mots ou caractères), puis un modèle `MultinomialNB` est entraîné. En pratique, c’est un très bon compromis entre simplicité, vitesse et performance sur ce dataset, même si l’hypothèse d’indépendance entre features reste approximative.
+4. **Naive Bayes**  
+Deux variantes sont implémentées avec `scikit-learn` :
+- une version simple en bag-of-words (`naive_bayes_simple.py`) avec `CountVectorizer` par défaut ;
+- une version à base de n-grammes de caractères ou de mots (`naive_bayes_with_ngrams.py`).  
+En pratique, la version caractères n-grammes donne les meilleurs résultats sur ce jeu de données.
 
-5. **Comparaison externe (`langid`)**  
+5. **Régression logistique**  
+Une régression logistique multinomiale est entraînée sur des vecteurs bag-of-words (`CountVectorizer`). Elle permet de comparer un autre classifieur linéaire simple aux variantes de Naive Bayes.
+
+6. **Comparaison externe (`langid`)**  
 On teste aussi `langid`, une bibliothèque externe prête à l’emploi, pour disposer d’un point de comparaison supplémentaire. Cela permet de situer le niveau du prototype, même si ce type d’outil est moins contrôlable et pas toujours optimisé pour le corpus du projet.
 
 ---
@@ -51,7 +57,10 @@ On teste aussi `langid`, une bibliothèque externe prête à l’emploi, pour di
 │   ├── intersection.py
 │   ├── knn_train.py
 │   ├── knn_predict.py
-│   └── naive_bayes.py
+│   ├── knn_train_with_tfidf.py
+│   ├── naive_bayes_simple.py
+│   ├── naive_bayes_with_ngrams.py
+│   └── logistic_regression.py
 ├── models/
 ├── results/
 ├── tools/
@@ -108,10 +117,17 @@ python classifiers/intersection.py train.txt dev.txt char 3 100
 python eval.py results/dev-pred-intersection-char-3gram-top100.txt dev.txt
 ```
 
-### Naive Bayes (char 3-gram, 2000 features)
+### Naive Bayes simple (bag-of-words)
 
 ```bash
-python classifiers/naive_bayes.py train.txt dev.txt char 3 2000
+python classifiers/naive_bayes_simple.py train.txt dev.txt
+python eval.py results/dev-pred-naivebayes-bow.txt dev.txt
+```
+
+### Naive Bayes n-grammes (char 3-gram, 2000 features)
+
+```bash
+python classifiers/naive_bayes_with_ngrams.py train.txt dev.txt char 3 2000
 python eval.py results/dev-pred-naivebayes-char-3gram-max2000.txt dev.txt
 ```
 
@@ -119,8 +135,23 @@ python eval.py results/dev-pred-naivebayes-char-3gram-max2000.txt dev.txt
 
 ```bash
 python classifiers/knn_train.py train.txt
-python classifiers/knn_predict.py dev.txt
+python classifiers/knn_predict.py dev.txt models/model-train_gathered.pkl
 python eval.py results/dev-pred-knearest-gathered.txt dev.txt
+```
+
+### kNN avec TF-IDF
+
+```bash
+python classifiers/knn_train_with_tfidf.py train.txt
+python classifiers/knn_predict.py dev.txt models/model-train-idf_gathered.pkl
+python eval.py results/dev-pred-knearest-idf-gathered.txt dev.txt
+```
+
+### Régression logistique (bag-of-words)
+
+```bash
+python classifiers/logistic_regression.py train.txt dev.txt
+python eval.py results/dev-pred-logreg.txt dev.txt
 ```
 
 ### langid (comparaison)
@@ -152,10 +183,10 @@ python eval.py results/dev-pred-naivebayes-char-3gram-max2000.txt dev.txt
 
 Point important pour la remise : **il faut un fichier de sortie**, pas seulement un affichage terminal.
 
-Exemple avec Naive Bayes :
+Exemple avec Naive Bayes n-grammes :
 
 ```bash
-python classifiers/naive_bayes.py train.txt test.txt char 3 2000
+python classifiers/naive_bayes_with_ngrams.py train.txt test.txt char 3 2000
 ```
 
 Fichier généré :
@@ -170,14 +201,18 @@ Ce fichier contient la même structure que `test.txt`, avec `??` remplacé par l
 
 Mesures observées sur `dev.txt` :
 
-| Fichier de prédiction | Accuracy |
-|---|---:|
-| `results/dev-pred-bayes.txt` | **99.68%** (315/316) |
-| `results/dev-pred-knearest.txt` | 94.94% (300/316) |
-| `results/dev-pred-knearest-gathered.txt` | 93.35% (295/316) |
-| `results/dev-pred1.txt` | 68.67% (217/316) |
+| Méthode | Fichier de prédiction | Accuracy |
+|---|---|---:|
+| Baseline aléatoire | `results/dev-pred-baseline.txt` | 4.43% (14/316) |
+| Intersection char 3-gram, top 100 | `results/dev-pred-intersection-char-3gram-top100.txt` | 97.47% (308/316) |
+| Naive Bayes simple (bag-of-words) | `results/dev-pred-naivebayes-bow.txt` | **99.68%** (315/316) |
+| Naive Bayes n-grammes (char 3-gram, 2000) | `results/dev-pred-naivebayes-char-3gram-max2000.txt` | 98.73% (312/316) |
+| kNN (modèle complet) | `results/dev-pred-knearest.txt` | 94.94% (300/316) |
+| kNN (modèle rassemblé) | `results/dev-pred-knearest-gathered.txt` | 93.35% (295/316) |
+| Régression logistique (bag-of-words) | `results/dev-pred-logreg.txt` | 96.52% (305/316) |
+| langid.py | `results/dev-pred-langid.txt` | 98.73% (312/316) |
 
-On observe que le modèle Naive Bayes avec des n-grammes de caractères obtient la meilleure performance. Ce résultat est cohérent avec la tâche : les n-grammes capturent des motifs orthographiques propres à chaque langue, ce qui facilite la discrimination entre classes.
+On observe que les modèles Naive Bayes (simple bag-of-words ou n-grammes de caractères) obtiennent les meilleures performances sur ce jeu de données, légèrement devant les autres classifieurs linéaires ou à base de k plus proches voisins. Les méthodes externes comme `langid.py` restent compétitives, mais sans avantage clair par rapport aux modèles entraînés spécifiquement sur ce corpus.
 
 ---
 
