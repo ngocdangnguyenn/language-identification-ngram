@@ -1,45 +1,187 @@
-Deviner la langue d'un texte
-----------------------------
+# Language Identification with Classical NLP (L3 TAL Project)
+### Auteurs
+- ACHOURI Doria
+- NGUYEN Ngoc Dang Nguyen
 
-Le problème posé ici est : comment peut-on deviner automatiquement dans quelle langue ou dialecte un texte a été écrit ?
+Ce projet a été réalisé dans le cadre du cours **TAL (L3)** à Aix-Marseille Université. Il traite une tâche de classification supervisée : identifier automatiquement la langue d’un texte court à partir d’exemples annotés.
 
-Un système d'identification automatique de la langue est utile, par exemple, dans un système de traduction automatique, pour savoir depuis quelle langue traduire. Il peut être utilisé également pour adapter les paramètres d'un système de reconnaissance vocale selon la langue de l'utilisateur. Les robots qui balaient le web utilisent des systèmes de détection de la langue pour catégoriser et indexer correctement les pages. On peut aussi utiliser un tel système pour détecter et ignorer des passages en langue étrangère lorsqu'on est en train d'analyser un texte en français.
+Le corpus est extrait d’Europarl, qui contient des transcriptions multilingues de débats du Parlement européen. Le choix méthodologique est volontairement centré sur des approches classiques, légères et interprétables, afin de comparer des modèles reproductibles sans recourir au deep learning.
 
-L'identification de la langue est une tâche assez facile en TAL, comparée à la traduction automatique ou à la reconnaissance de la parole. Cependant, certains défis peuvent se poser pour distinguer les langues proches (p. ex. portugais et espagnol) et pour traiter des textes très courts comme les tweets, par exemple, qui ne dépassent pas les 140 caractères. 
+---
 
-## Catégories à prédire
+## Objectif
 
-Vous devez prédire une catégorie parmi les codes ISO ci-dessous des langues inclues dans le dataset :
-  * bg - Bulgare
-  * cs - Tchèque
-  * da - Dannois
-  * de - Allemand
-  * el - Grec
-  * en - Anglais
-  * es - Espagnol
-  * et - Estonian
-  * fi - Finnois
-  * fr - Français
-  * hu - Hongrois
-  * it - Italien
-  * lt - Lituanian
-  * lv - Letonian
-  * nl - Néerlandais
-  * pl - Polonais
-  * pt - Portugais
-  * ro - Roumain
-  * sk - Slovaque
-  * sl - Slovénien
-  * sv - Suédois
+L’objectif est de prédire la langue d’un texte parmi 21 catégories ISO (`bg`, `cs`, `da`, `de`, `el`, `en`, `es`, `et`, `fi`, `fr`, `hu`, `it`, `lt`, `lv`, `nl`, `pl`, `pt`, `ro`, `sk`, `sl`, `sv`).
 
-Ce corpus a été créé spécialement pour ce projet à partir du corpus parallèle [Europarl](https://www.statmt.org/europarl/).
+Le système est entraîné sur `train.txt`, comparé sur `dev.txt`, puis appliqué à `test.txt` où les labels sont remplacés par `??`. Le format de sortie attendu est identique au format d’entrée : texte original + tabulation + catégorie prédite.
 
-## Développement à faire
+L’évaluation est réalisée avec l’accuracy via `eval.py`, ce qui permet de mesurer simplement la proportion de prédictions correctes.
 
-Vous devez écrire un logiciel qui devine, pour un texte donné en entrée, quelle est sa langue. Par exemple, si on donne en entrée le texte _Hallo, wie geht es dir?_ votre programme doit donner comme résultat `de`, qui est le code de la langue allemande. Cependant, si le texte en entrée est _Hola buenos días niño, ¿qué tal?_, il faut prédire `es` pour espagnol.
+---
 
-Votre système doit donner en sortie un fichier au même format que l'entrée, avec une copie du tweet suivie d'une tabulation suivie de la catégorie prédite.
+## Méthodes implémentées
 
-## Extensions ou alternatives
+1. **Baseline aléatoire**  
+Cette méthode assigne une langue au hasard parmi les 21 classes possibles. Elle ne fait aucun apprentissage, mais elle sert de repère minimal pour vérifier que les autres systèmes apportent un vrai gain.
 
-Vous devez proposer des améliorations et/ou des extensions si vous travaillez uniquement sur ces données. Nous proposons soit de tester votre système sur un des autres datasets proposés, soit de faire une étude empirique qui mesure (a) la performance du système et (b) le temps d'exécution en faisant varier la taille du jeu de données d'entraînement et la longueur des textes à prédire. Pour cela, vous pouvez réduire artificiellement la taille des datasets et la longuer des phrases en supprimant tout ce qui dépasse un certain seuil. Vous créerez des datasets de taille/longueur incrémentale, et vous ferez une courbe pour montrer comment la performance et le temps d'exécution évoluent en fonction de la taille/longueur du dataset/des phrases.
+2. **Intersection de n-grammes**  
+On extrait des n-grammes (de caractères ou de mots) fréquents pour chaque langue dans `train.txt`, puis on choisit la langue qui a l’intersection la plus forte avec le texte à classer. L’approche est simple et lisible, mais sa qualité dépend fortement du choix des paramètres (`n`, `top_k`).
+
+3. **k plus proches voisins (kNN)**  
+Chaque texte est représenté sous forme de vecteur de fréquences, puis comparé aux exemples d’entraînement avec une similarité cosinus. La classe est décidée à partir des voisins les plus proches. Cette méthode est une bonne référence classique, mais elle est plus coûteuse en prédiction.
+
+4. **Naive Bayes (scikit-learn)**  
+Les textes sont vectorisés avec `CountVectorizer` (n-grammes mots ou caractères), puis un modèle `MultinomialNB` est entraîné. En pratique, c’est un très bon compromis entre simplicité, vitesse et performance sur ce dataset, même si l’hypothèse d’indépendance entre features reste approximative.
+
+5. **Comparaison externe (`langid`)**  
+On teste aussi `langid`, une bibliothèque externe prête à l’emploi, pour disposer d’un point de comparaison supplémentaire. Cela permet de situer le niveau du prototype, même si ce type d’outil est moins contrôlable et pas toujours optimisé pour le corpus du projet.
+
+---
+
+## Structure du projet
+
+```text
+.
+├── baseline.py
+├── eval.py
+├── train.txt
+├── dev.txt
+├── test.txt
+├── classifiers/
+│   ├── intersection.py
+│   ├── knn_train.py
+│   ├── knn_predict.py
+│   └── naive_bayes.py
+├── models/
+├── results/
+├── tools/
+│   └── test_langid.py
+└── CONSIGNES_SUJET.md
+```
+
+---
+
+## Installation
+
+### Dépendances
+
+```bash
+pip install numpy nltk sacremoses scikit-learn langid
+```
+
+Téléchargement NLTK (première exécution) :
+
+```bash
+python -c "import nltk; nltk.download('punkt')"
+```
+
+---
+
+## Format des données
+
+Chaque ligne suit le format :
+
+```text
+<texte>\t<label>
+```
+
+- `train.txt` / `dev.txt` : labels connus
+- `test.txt` : label `??` à remplacer par la prédiction
+
+---
+
+## Exécution rapide
+
+Toutes les commandes se lancent depuis la racine du projet.
+
+### Baseline
+
+```bash
+python baseline.py dev.txt > results/dev-pred-baseline.txt
+python eval.py results/dev-pred-baseline.txt dev.txt
+```
+
+### Intersection (char 3-gram, top 100)
+
+```bash
+python classifiers/intersection.py train.txt dev.txt char 3 100
+python eval.py results/dev-pred-intersection-char-3gram-top100.txt dev.txt
+```
+
+### Naive Bayes (char 3-gram, 2000 features)
+
+```bash
+python classifiers/naive_bayes.py train.txt dev.txt char 3 2000
+python eval.py results/dev-pred-naivebayes-char-3gram-max2000.txt dev.txt
+```
+
+### kNN
+
+```bash
+python classifiers/knn_train.py train.txt
+python classifiers/knn_predict.py dev.txt
+python eval.py results/dev-pred-knearest-gathered.txt dev.txt
+```
+
+### langid (comparaison)
+
+```bash
+python tools/test_langid.py dev.txt > results/dev-pred-langid.txt
+python eval.py results/dev-pred-langid.txt dev.txt
+```
+
+---
+
+## Évaluation
+
+Le script [eval.py](eval.py) calcule l’accuracy entre un fichier de prédiction et un fichier de référence :
+
+```bash
+python eval.py <fichier_prediction> <fichier_reference>
+```
+
+Exemple :
+
+```bash
+python eval.py results/dev-pred-naivebayes-char-3gram-max2000.txt dev.txt
+```
+
+---
+
+## Générer la prédiction finale pour test.txt
+
+Point important pour la remise : **il faut un fichier de sortie**, pas seulement un affichage terminal.
+
+Exemple avec Naive Bayes :
+
+```bash
+python classifiers/naive_bayes.py train.txt test.txt char 3 2000
+```
+
+Fichier généré :
+
+- `results/test-pred-naivebayes-char-3gram-max2000.txt`
+
+Ce fichier contient la même structure que `test.txt`, avec `??` remplacé par les labels prédits.
+
+---
+
+## Résultats obtenus
+
+Mesures observées sur `dev.txt` :
+
+| Fichier de prédiction | Accuracy |
+|---|---:|
+| `results/dev-pred-bayes.txt` | **99.68%** (315/316) |
+| `results/dev-pred-knearest.txt` | 94.94% (300/316) |
+| `results/dev-pred-knearest-gathered.txt` | 93.35% (295/316) |
+| `results/dev-pred1.txt` | 68.67% (217/316) |
+
+On observe que le modèle Naive Bayes avec des n-grammes de caractères obtient la meilleure performance. Ce résultat est cohérent avec la tâche : les n-grammes capturent des motifs orthographiques propres à chaque langue, ce qui facilite la discrimination entre classes.
+
+---
+
+## Limitations
+
+Le prototype présente quelques limites. Le corpus utilisé contient des phrases relativement bien formées ; les performances peuvent donc baisser sur des textes plus bruités (messages courts, réseaux sociaux, fautes fréquentes). Le système ne traite pas explicitement les cas de mélange de langues dans une même phrase. Enfin, la méthode kNN devient plus coûteuse en temps de calcul lorsque la taille du corpus augmente.
+

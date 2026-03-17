@@ -23,7 +23,6 @@ class DocVector(object) :
     Creates a vectorised document by counting all words in the `text`.
     """
     self.category = category
-    vect = []
     tokenizer = MosesTokenizer()
     text_in_sentences = nltk.tokenize.sent_tokenize(text)
     counter = Counter()
@@ -58,6 +57,8 @@ class DocVector(object) :
     for key in self.vector.keys() :
         numerator += self.vector[key] * anotherDoc.vector[key]
     denominator = self.norm() * anotherDoc.norm()
+    if denominator == 0:
+      return 0.0
     return numerator / denominator
     
 
@@ -74,10 +75,10 @@ class DocCollection(object):
     """        
     with open(filename, "r", encoding="utf-8") as fic :
       self.documents_vectors = []
+      self.has_been_factorised = False
       for line in fic :
         processed_line = line.strip().split("\t")
         self.documents_vectors.append(DocVector(processed_line[0], processed_line[1]))
-        self.has_been_factorised = False
       
   def knearest(self, anotherDoc, k=10):
     """
@@ -88,10 +89,18 @@ class DocCollection(object):
       similarity = document.cosine(anotherDoc)
       category = document.category
       neighbours.append((similarity, category))
-    list_of_neighbours = sorted(neighbours, reverse=True)[:k]
-    counter = Counter()
-    counter.update(list_of_neighbours)
-    return counter.most_common(1)[0][0][1]
+    list_of_neighbours = sorted(neighbours, key=lambda x: x[0], reverse=True)[:k]
+    label_counts = Counter(label for _, label in list_of_neighbours)
+    best_count = max(label_counts.values())
+    best_labels = [label for label, count in label_counts.items() if count == best_count]
+    if len(best_labels) == 1:
+      return best_labels[0]
+
+    similarity_sums = Counter()
+    for similarity, label in list_of_neighbours:
+      if label in best_labels:
+        similarity_sums[label] += similarity
+    return max(best_labels, key=lambda label: similarity_sums[label])
   
   ###########Extension : gathering all documents which share the same label in a single document to (try to) be less slow
   def gather_all(self, current_lang):
@@ -114,13 +123,17 @@ class DocCollection(object):
   def fact_colletion(self):
     """To factorize all DocVectors which share the same label into a big DocVector"""
     if not self.has_been_factorised : 
+      grouped_docs = {}
+      for doc_vector in self.documents_vectors:
+        if doc_vector.category not in grouped_docs:
+          grouped_docs[doc_vector.category] = []
+        grouped_docs[doc_vector.category].append(doc_vector)
+
       new_collection = []
-      for doc_vector in self.documents_vectors : 
-        current_lang = doc_vector.category
-        documents_with_current_lang = self.gather_all(current_lang)
-        self.supress_all(documents_with_current_lang)
+      for documents_with_current_lang in grouped_docs.values():
         new_document = self.concat_texts(documents_with_current_lang)
         new_collection.append(new_document)
+
       self.documents_vectors = new_collection
       self.has_been_factorised = True
       
@@ -128,24 +141,25 @@ class DocCollection(object):
 
 ################################################################################
 
-if __name__ == "__main__" : # python way to declare "main" function
-  
-  # Check if a file was provided as argument, containing preprocessed corpus
-  if len(sys.argv) != 2 :
+if __name__ == "__main__" :
+  if len(sys.argv) < 2 or len(sys.argv) > 3 :
     print("Please provide a preprocessed training corpus file!", file=sys.stderr)
-    print(f"  Usage: {sys.argv[0]} <train-corpus-file>", file=sys.stderr)
-    exit(-1)  
-    
+    print(f"  Usage: {sys.argv[0]} <train-corpus-file> [output-model-file]", file=sys.stderr)
+    exit(-1)
+
   trainfilename = sys.argv[1]
+  output_model_file = sys.argv[2] if len(sys.argv) > 2 else None
 
-  # Create document collection from training corpus file
-  docCollection = DocCollection(trainfilename) 
-  docCollection.fact_colletion()  #uncomment this to make a unfactorised model
-  if docCollection.has_been_factorised :
-    suf_suppl = "_gathered"
-  else :
-    suf_suppl = ""
+  docCollection = DocCollection(trainfilename)
+  docCollection.fact_colletion()
 
-  # Save the list of vectorized documents into a binary file named "model.pkl"    
-  pickle.dump(docCollection, open("models/model" + suf_suppl + ".pkl", 'wb')) 
+  if output_model_file:
+    output_path = output_model_file
+  else:
+    suffix = "_gathered" if docCollection.has_been_factorised else ""
+    output_path = "models/model" + suffix + ".pkl"
+
+  with open(output_path, 'wb') as model_file:
+    pickle.dump(docCollection, model_file)
+
   print(len(docCollection.documents_vectors))

@@ -6,7 +6,6 @@ Script to classify the texts in the dev file.
 
 import sys
 from knn_train import DocCollection, DocVector
-from collections import Counter
 import pickle
 
 ################################################################################
@@ -29,13 +28,12 @@ if __name__ == "__main__" : # python way to declare "main" function
      suff_supplement = ""
   devfilename = sys.argv[1]      
   truename = devfilename[:-4]
-    
-      
-with open(devfilename, "r", encoding="utf-8") as fic, open("results/" + truename + "-pred-knearest" + suff_supplement + ".txt", "w", encoding="utf-8") as fic_dest:
-  for file in fic :
-    whole_tab = file.split("\t")
-    text = whole_tab[0]
-    type = whole_tab[1]
-    fileVector = DocVector(text, type)
-    fic_dest.write(text + "\t" + docModel.knearest(fileVector) + "\n")
+
+  with open(devfilename, "r", encoding="utf-8") as fic, open("results/" + truename + "-pred-knearest" + suff_supplement + ".txt", "w", encoding="utf-8") as fic_dest:
+    for file in fic :
+      whole_tab = file.split("\t")
+      text = whole_tab[0]
+      label = whole_tab[1]
+      fileVector = DocVector(text, label)
+      fic_dest.write(text + "\t" + docModel.knearest(fileVector) + "\n")
         
