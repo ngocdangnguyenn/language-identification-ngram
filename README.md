@@ -135,7 +135,8 @@ python eval.py results/dev-pred-naivebayes-char-3gram-max2000.txt dev.txt
 Décommenter l'import dans knn_predict.py: from knn_train import DocCollection  
 Commenter l'import dans knn_predict.py : from knn_train_with_tfidf import DocCollection  
 
-Il y a également des options pour factoriser le modèle et aussi simplement compter les lettres dans le texte (voir commentaires à la fin de knn_train pour activer ces options)
+Il y a également des options pour factoriser le modèle et aussi simplement compter les lettres dans le texte (voir commentaires à la fin de knn_train pour activer ces options). Cette dernière option est inspirée de la solution naïve dont nous avons eu l'idée avant de commencer à étudier les méthodes spécifiques au TAL.
+
 ```bash
 python classifiers/knn_train.py train.txt
 python classifiers/knn_predict.py dev.txt models/<nom du modèle à utiliser>
@@ -210,7 +211,12 @@ Mesures observées sur `dev.txt` :
 | Méthode | Fichier de prédiction | Accuracy |
 |---|---|---:|
 | Baseline aléatoire | `results/dev-pred-baseline.txt` | 4.43% (14/316) |
+| Intersection char 2-gram, top 100 | `results/dev-pred-intersection-char-2gram-top100.txt` | 97.47% (308/316) |
 | Intersection char 3-gram, top 100 | `results/dev-pred-intersection-char-3gram-top100.txt` | 97.47% (308/316) |
+| Intersection char 4-gram, top 100 | `results/dev-pred-intersection-char-4gram-top100.txt` | 97.78% (309/316) |
+| Intersection bigrammes de mot, top 100 | `results/dev-pred-intersection-word-2gram-top100.txt` | 86.08% (272/316) |
+| Intersection trigrammes de mot, top 100 | `results/dev-pred-intersection-word-3gram-top100.txt` |  68.67% (217/316) |
+| Intersection 4-grammes de mot, top 100 | `results/dev-pred-intersection-word-4gram-top100.txt` | 48.73% (154/316) |
 | Naive Bayes simple (bag-of-words) | `results/dev-pred-naivebayes-bow.txt` | **99.68%** (315/316) |
 | Naive Bayes n-grammes (char 3-gram, 2000) | `results/dev-pred-naivebayes-char-3gram-max2000.txt` | 98.73% (312/316) |
 | kNN (modèle complet) | `results/dev-pred-knearest.txt` | 94.94% (300/316) |
@@ -223,7 +229,7 @@ Mesures observées sur `dev.txt` :
 
 On observe que les modèles Naive Bayes (simple bag-of-words ou n-grammes de caractères) obtiennent les meilleures performances sur ce jeu de données, légèrement devant les autres classifieurs linéaires ou à base de k plus proches voisins. Les méthodes externes comme `langid.py` restent compétitives, mais sans avantage clair par rapport aux modèles entraînés spécifiquement sur ce corpus.
 
-Nous avons notamment constaté des ralentissements lorsqu'on utilisait kNN tel qu'implémenté en TP. Ainsi nous avons fait le choix d'implémenter un modèle qui rassemble tous les textes d'une même langue sous un même vecteur pour chacun des textes du corpus d'entraînement. Au vu de la perte négligeable de résultats comparée au gain en terme de vitesse de génération du fichier, nous avons choisi de faire nos autres tests qui utilisent kNN avec ce modèle rassemblé. De plus, nous avons remarqué que TF-IDF n'apporte pas d'améliorations significatives ; on peut conjecturer que cela est notamment dû au fait que les langues sont très différentes entre elles pour la plupart, et donc que donner plus de poids aux mots les plus rares n'est pas un facteur d'amélioration significatif. On peut également noter que le compte de lettres donne des prédictions assez limitées par rapport aux autres modèles que nous avons développés, ce qui montre bien les apports donnés par les méthodes de TAL vis-à-vis de l'approche naïve. 
+Plusieurs constats peuvent être tirés de ce projet et des résultats que nous observons. Tout d'abord on peut constater qu'augmenter la taille des n-grammes de mots fait décroître les performances du modèle. Cela est peut-être notamment dû à la très faible longueur des textes, qui pourrait éventuellement rendre très dure la recherche d'un long n-gramme. Nous avons de plus constaté des ralentissements lorsqu'on utilisait kNN tel qu'implémenté en TP. Ainsi nous avons fait le choix d'implémenter un modèle qui rassemble tous les textes d'une même langue sous un même vecteur pour chacun des textes du corpus d'entraînement. Au vu de la perte négligeable de résultats comparée au gain en terme de vitesse de génération du fichier, nous avons choisi de faire nos autres tests qui utilisent kNN avec ce modèle rassemblé. De plus, nous avons remarqué que TF-IDF n'apporte pas d'améliorations significatives ; on peut conjecturer que cela est notamment dû au fait que les langues sont très différentes entre elles pour la plupart, et donc que donner plus de poids aux mots les plus rares n'est pas un facteur d'amélioration significatif. On peut également noter que le compte de lettres donne des prédictions assez limitées par rapport aux autres modèles que nous avons développés, ce qui montre bien les apports donnés par les méthodes de TAL vis-à-vis de l'approche naïve. 
 
 ---
 
