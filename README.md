@@ -132,18 +132,22 @@ python eval.py results/dev-pred-naivebayes-char-3gram-max2000.txt dev.txt
 ```
 
 ### kNN
+Décommenter l'import dans knn_predict.py: from knn_train import DocCollection  
+Commenter l'import dans knn_predict.py : from knn_train_with_tfidf import DocCollection  
 
+Il y a également des options pour factoriser le modèle et aussi simplement compter les lettres dans le texte (voir commentaires à la fin de knn_train pour activer ces options)
 ```bash
 python classifiers/knn_train.py train.txt
-python classifiers/knn_predict.py dev.txt models/model-train_gathered.pkl
+python classifiers/knn_predict.py dev.txt models/<nom du modèle à utiliser>
 python eval.py results/dev-pred-knearest-gathered.txt dev.txt
 ```
 
 ### kNN avec TF-IDF
-
+Commenter l'import dans knn_predict.py: from knn_train import DocCollection  
+Décommenter l'import dans knn_predict.py : from knn_train_with_tfidf import DocCollection  
 ```bash
 python classifiers/knn_train_with_tfidf.py train.txt
-python classifiers/knn_predict.py dev.txt models/model-train-idf_gathered.pkl
+python classifiers/knn_predict.py dev.txt models/<nom du modèle à utiliser>
 python eval.py results/dev-pred-knearest-idf-gathered.txt dev.txt
 ```
 
@@ -195,6 +199,8 @@ Fichier généré :
 
 Ce fichier contient la même structure que `test.txt`, avec `??` remplacé par les labels prédits.
 
+Les fichiers générés ont un nom qui permet normalement d'aisément retrouver la source et la méthode utilisée pour les générer. Ils sont dans le fichier results pour la plupart, sauf les modèles qui seront générés dans le fichier models.
+
 ---
 
 ## Résultats obtenus
@@ -209,10 +215,15 @@ Mesures observées sur `dev.txt` :
 | Naive Bayes n-grammes (char 3-gram, 2000) | `results/dev-pred-naivebayes-char-3gram-max2000.txt` | 98.73% (312/316) |
 | kNN (modèle complet) | `results/dev-pred-knearest.txt` | 94.94% (300/316) |
 | kNN (modèle rassemblé) | `results/dev-pred-knearest-gathered.txt` | 93.35% (295/316) |
+| kNN avec TF-IDF | `results/dev-pred-knearest-idf-gathered.txt` | 94.30% (298/316) |
 | Régression logistique (bag-of-words) | `results/dev-pred-logreg.txt` | 96.52% (305/316) |
 | langid.py | `results/dev-pred-langid.txt` | 98.73% (312/316) |
+| Compte des lettres | `results/dev-gathered-pred-knearest-letter.txt`| 18.99% (60/316) |
+
 
 On observe que les modèles Naive Bayes (simple bag-of-words ou n-grammes de caractères) obtiennent les meilleures performances sur ce jeu de données, légèrement devant les autres classifieurs linéaires ou à base de k plus proches voisins. Les méthodes externes comme `langid.py` restent compétitives, mais sans avantage clair par rapport aux modèles entraînés spécifiquement sur ce corpus.
+
+Nous avons notamment constaté des ralentissements lorsqu'on utilisait kNN tel qu'implémenté en TP. Ainsi nous avons fait le choix d'implémenter un modèle qui rassemble tous les textes d'une même langue sous un même vecteur pour chacun des textes du corpus d'entraînement. Au vu de la perte négligeable de résultats comparée au gain en terme de vitesse de génération du fichier, nous avons choisi de faire nos autres tests qui utilisent kNN avec ce modèle rassemblé. De plus, nous avons remarqué que TF-IDF n'apporte pas d'améliorations significatives ; on peut conjecturer que cela est notamment dû au fait que les langues sont très différentes entre elles pour la plupart, et donc que donner plus de poids aux mots les plus rares n'est pas un facteur d'amélioration significatif. On peut également noter que le compte de lettres donne des prédictions assez limitées par rapport aux autres modèles que nous avons développés, ce qui montre bien les apports donnés par les méthodes de TAL vis-à-vis de l'approche naïve. 
 
 ---
 

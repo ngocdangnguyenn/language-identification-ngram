@@ -90,9 +90,9 @@ if __name__ == "__main__" : # python way to declare "main" function
   docCollection.fact_colletion()  #(un)comment this to make a unfactorised model
   suf_suppl = "-idf"
   if docCollection.has_been_factorised :
-    suf_suppl += "_gathered"
+    suf_suppl += "-gathered"
   if docCollection.is_a_letter_model : 
-    suf_suppl += "_letter"
+    suf_suppl += "-letter"
 
   # Save the list of vectorized documents into a binary file named "model.pkl"    
   pickle.dump(docCollection, open("models/model-"+ true_trainfilename + suf_suppl + ".pkl", 'wb')) 
