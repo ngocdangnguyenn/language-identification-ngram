@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
 """
-Letter Counter Classifier - Naive Baseline
+Letter Counter - Heuristique Fréquentiste
+Comptage des fréquences de lettres (a-z) comme baseline comparative.
+Cette approche n'utilise pas d'apprentissage supervisé.
 """
 
 import sys

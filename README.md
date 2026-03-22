@@ -28,7 +28,7 @@ Cette méthode assigne une langue au hasard parmi les 21 classes possibles. Elle
 On extrait des n-grammes (de caractères ou de mots) fréquents pour chaque langue dans `train.txt`, puis on choisit la langue qui a l’intersection la plus forte avec le texte à classer. L’approche est simple et lisible, mais sa qualité dépend fortement du choix des paramètres (`n`, `top_k`).
 
 3. **k plus proches voisins (kNN)**  
-Chaque texte est représenté sous forme de vecteur de fréquences avec un comptage de mots, puis comparé aux exemples d'entraînement avec une similarité cosinus. La classe est décidée à partir des voisins les plus proches. Cette méthode est une bonne référence classique, mais elle est plus coûteuse en prédiction. Afin d'éviter cela, nous avons implémenté la possibilité de rassembler tous les textes de chaque catégorie dans un seul document pour chaque collection. Une variante avec pondération TF-IDF est également testée.
+Chaque texte est représenté sous forme de vecteur de fréquences de mots, puis comparé aux exemples d'entraînement avec une similarité cosinus. La classe est décidée à partir des voisins les plus proches. Cette méthode est une bonne référence classique, mais elle est plus coûteuse en prédiction. Afin d'éviter cela, nous avons implémenté la possibilité de rassembler tous les textes de chaque catégorie dans un seul document pour chaque collection. Une variante avec pondération TF-IDF est également testée.
 
 4. **Naive Bayes**  
 Deux variantes sont implémentées avec `scikit-learn` :
@@ -39,13 +39,13 @@ En pratique, la version caractères n-grammes donne les meilleurs résultats sur
 5. **Régression logistique**  
 Une régression logistique multinomiale est entraînée sur des vecteurs bag-of-words (`CountVectorizer`). Elle permet de comparer un autre classifieur linéaire simple aux variantes de Naive Bayes.
 
-6. **Comptage de lettres (Naive Baseline)**  
-Ce n'est **pas un classifieur ML**, mais une heuristique naive. Elle compte simplement la fréquence de chaque lettre (a-z) dans le texte et les compare avec les profils de lettres de chaque langue. Cette méthode:
-- **N'utilise pas d'apprentissage** : elle compare directement les fréquences
-- **N'est pas kNN** : pas de voisins, pas de voting, pas de modèle appris
-- **Sert de baseline** : montre pourquoi les approches ML sont nécessaires
+6. **Comptage de lettres (heuristique fréquentiste)**  
+Cette approche compte la fréquence de chaque lettre (a-z) dans le texte et les compare avec les profils de lettres de chaque langue. Contrairement aux méthodes ML supervisées :
+- N'utilise pas d'apprentissage : comparaison directe de fréquences observées
+- Fonctionne indépendamment du corpus d'entraînement
+- Sert de baseline comparative pour évaluer le gain des méthodes supervisées
 
-Cette option est inspirée de la solution naïve à laquelle nous avons pensé avant d'étudier les méthodes spécifiques au TAL.
+Cette heuristique illustre pourquoi les approches ML outperforment les méthodes naïves sur cette tâche.
 
 7. **Comparaison externe (`langid`)**  
 On teste aussi `langid`, une bibliothèque externe prête à l’emploi, pour disposer d’un point de comparaison supplémentaire. Cela permet de situer le niveau du prototype, même si ce type d’outil est moins contrôlable et pas toujours optimisé pour le corpus du projet.
@@ -174,7 +174,7 @@ python tools/test_langid.py dev.txt > results/dev-pred-langid.txt
 python eval.py results/dev-pred-langid.txt dev.txt
 ```
 
-### Letter Counter (Naive Baseline)
+### Comptage de lettres (heuristique fréquentiste)
 
 ```bash
 python classifiers/letter_counter.py train.txt dev.txt

@@ -1,0 +1,205 @@
+\documentclass{beamer}
+
+\mode<presentation>
+{
+  \usetheme{Madrid}
+  \usecolortheme{rose}
+  \usefonttheme{structurebold}
+  \setbeamertemplate{navigation symbols}{}
+  \setbeamertemplate{caption}[numbered]
+}
+
+\usepackage[french]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
+
+\title[Classification de langues]{UE Traitement Automatique de Langues \\Classification de langues}
+\author{ACHOURI Doria \\NGUYEN Ngoc Dang Nguyen}
+\institute{Aix-Marseille Université}
+\date{23 mars 2026}
+
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}
+\tableofcontents
+\end{frame}
+
+%------------------------------------------------
+\section{Introduction}
+
+\begin{frame}{Introduction}
+\begin{itemize}
+  \item L'identification automatique de la langue est une tâche classique en TAL
+  \item Applications :
+  \begin{itemize}
+    \item Traduction automatique
+    \item Moteurs de recherche
+    \item Filtrage de contenu
+  \end{itemize}
+  \item \textbf{Problème :} comment prédire automatiquement la langue d'un texte court ?
+\end{itemize}
+\end{frame}
+
+%------------------------------------------------
+\section{Définition du problème}
+
+\begin{frame}{Définition du problème}
+\begin{itemize}
+  \item \textbf{Input :} $x$ = une phrase inconnue
+  \item \textbf{Output :} $y$ = la langue identifiée par un code ISO (fr, en, de, ...)
+  \item \textbf{Dataset :} Europarl, 21 langues
+  \item \textbf{Exemples :}
+  \begin{itemize}
+    \item \textit{"Hallo"} $\rightarrow$ \texttt{de}
+    \item \textit{"Hola"} $\rightarrow$ \texttt{es}
+  \end{itemize}
+  \item \textbf{Difficultés :}
+  \begin{itemize}
+    \item Langues proches : es/pt, nl/de, sk/sl...
+    \item Textes courts $\Rightarrow$ peu de contexte pour la prédiction
+  \end{itemize}
+\end{itemize}
+\end{frame}
+
+%------------------------------------------------
+\section{Données et Méthodologie}
+
+\begin{frame}{Données et méthodologie}
+\begin{itemize}
+  \item \textbf{Données :}
+  \begin{itemize}
+    \item \texttt{train.txt} : entraîner le modèle
+    \item \texttt{dev.txt} : valider et ajuster
+    \item \texttt{test.txt} : tester en conditions réelles
+  \end{itemize}
+  \item \textbf{Évaluation :}
+  \begin{itemize}
+    \item Script \texttt{eval.py} : calcule l'accuracy de la prédiction
+    \item Métrique : proportion de prédictions correctes
+  \end{itemize}
+\end{itemize}
+\end{frame}
+
+%------------------------------------------------
+\section{Classifieurs testés}
+
+\begin{frame}{Classifieurs testés}
+\textbf{Approches simples :}
+\begin{itemize}
+  \item \textbf{Baseline} : attribution aléatoire (repère minimal)
+  \item \textbf{Intersection n-grammes} : sélection par chevauchement des n-grammes fréquents
+  \item \textbf{kNN} : vote des $k$ voisins les plus proches (similarité cosinus)
+\end{itemize}
+
+\vspace{0.8em}
+\textbf{Classifieurs probabilistes :}
+\begin{itemize}
+  \item \textbf{Naive Bayes} : approche bayésienne sur bag-of-words ou n-grammes
+  \item \textbf{Régression logistique} : classifieur linéaire multinomial
+\end{itemize}
+
+\vspace{0.8em}
+\textbf{Comparaison :} langid.py (système external)
+\end{frame}
+
+%------------------------------------------------
+\section{Résultats}
+
+\begin{frame}{Résultats}
+\centering
+\scriptsize
+\begin{tabular}{lc}
+\hline
+\textbf{Méthode} & \textbf{Accuracy} \\
+\hline
+Baseline aléatoire & 4.43\% \\
+Intersection (char 2-gram, top 100) & 97.47\% \\
+Intersection (char 3-gram, top 100) & 97.47\% \\
+Intersection (char 4-gram, top 100) & 97.78\% \\
+Intersection (word 2-gram, top 100) & 86.08\% \\
+Intersection (word 3-gram, top 100) & 68.67\% \\
+Intersection (word 4-gram, top 100) & 48.73\% \\
+kNN (modèle rassemblé) & 93.35\% \\
+kNN avec TF-IDF & 94.30\% \\
+Régression logistique (BoW) & 96.52\% \\
+Naive Bayes (char 3-gram, 2000) & 98.73\% \\
+langid.py (external) & 98.73\% \\
+\textbf{Naive Bayes (BoW)} & \textbf{99.68\%} \\
+Comptage de lettres & 18.99\% \\
+\hline
+\end{tabular}
+
+\vspace{0.2cm}
+\tiny
+Meilleur modèle : Naive Bayes simple (bag-of-words) — \textbf{99.68\% accuracy}
+\end{frame}
+
+%------------------------------------------------
+\section{Résultats sur le corpus de dialectes}
+
+\begin{frame}{Résultats sur le corpus de dialectes}
+\centering
+\scriptsize
+\begin{tabular}{lc}
+\hline
+\textbf{Méthode} & \textbf{Accuracy} \\
+\hline
+Intersection (char 2-gram, top 100) & 49.43\% \\
+Intersection (char 3-gram, top 100) & 49.23\% \\
+Intersection (char 4-gram, top 100) & 13.43\% \\
+Intersection (word 2-gram, top 100) & 40.42\% \\
+Intersection (word 3-gram, top 100) & 21.19\% \\
+Intersection (word 4-gram, top 100) & 13.43\% \\
+kNN (modèle rassemblé) & 57.73\% \\
+kNN avec TF-IDF & 66.67\% \\
+Régression logistique (BoW) & 84.62\% \\
+Naive Bayes (char 3-gram, 2000) & 74.51\% \\
+\textbf{Naive Bayes (BoW)} & \textbf{84.82\%} \\
+Comptage de lettres & 12.65\% \\
+\hline
+\end{tabular}
+
+
+\vspace{0.2cm}
+\tiny
+Meilleur modèle : Naive Bayes simple (bag-of-words) — \textbf{84.82\% accuracy}
+\end{frame}
+
+%------------------------------------------------
+\section{Limitations du système}
+
+\begin{frame}{Limitations du système}
+\begin{itemize}
+  \item \textbf{Langues proches} : es/pt (\textit{Olá} → prédit es au lieu de pt), nl/de, sk/sl...
+  \item Corpus Europarl bien formé $\Rightarrow$ données bruités = problème
+  \item \textbf{Sparsité n-grammes mots} : word 4g-gram = 48.73\% (vs char 4g = 97.78\%)
+  \item kNN \textbf{lent} avec grand corpus
+  \item Pas de gestion \textbf{mélange langues} (code-switching)
+  \item Textes très courts (\textit{``Hi''}) : ambigus, risqué
+\end{itemize}
+\end{frame}
+
+%------------------------------------------------
+\section{Conclusion}
+
+\begin{frame}{Conclusion}
+
+\begin{block}{Bilan du projet}
+Les approches classiques suffisent pour identifier la langue d'un texte court avec \textbf{très haute précision} — sans deep learning.
+\end{block}
+
+\begin{itemize}
+  \item Comparaison 13 variantes : baseline, intersection (n-grammes), kNN, Naive Bayes, LogReg, langid
+  \item \textbf{Représentation clé} : n-grammes caractères $\gg$ mots
+  \item \textbf{Meilleur modèle} : Naive Bayes BoW (99.68\% + simplicité)
+\end{itemize}
+
+\end{frame}
+
+\end{document}
