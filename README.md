@@ -28,7 +28,7 @@ Cette méthode assigne une langue au hasard parmi les 21 classes possibles. Elle
 On extrait des n-grammes (de caractères ou de mots) fréquents pour chaque langue dans `train.txt`, puis on choisit la langue qui a l’intersection la plus forte avec le texte à classer. L’approche est simple et lisible, mais sa qualité dépend fortement du choix des paramètres (`n`, `top_k`).
 
 3. **k plus proches voisins (kNN)**  
-Chaque texte est représenté sous forme de vecteur de fréquences avec un comptage de mots ou de lettres, puis comparé aux exemples d’entraînement avec une similarité cosinus. La classe est décidée à partir des voisins les plus proches. Cette méthode est une bonne référence classique, mais elle est plus coûteuse en prédiction. Afin d'éviter cela, nous avons implémenté la possibilité de rassembler tous les textes de chaque catégorie dans un seul document pour chaque collection. Une variante avec pondération TF-IDF est également testée, ainsi qu'une variante ne comptant que les occurences de chaque lettre. Cette dernière option est inspirée de la solution naïve dont nous avons eu l'idée avant de commencer à étudier les méthodes spécifiques au TAL.
+Chaque texte est représenté sous forme de vecteur de fréquences avec un comptage de mots, puis comparé aux exemples d'entraînement avec une similarité cosinus. La classe est décidée à partir des voisins les plus proches. Cette méthode est une bonne référence classique, mais elle est plus coûteuse en prédiction. Afin d'éviter cela, nous avons implémenté la possibilité de rassembler tous les textes de chaque catégorie dans un seul document pour chaque collection. Une variante avec pondération TF-IDF est également testée.
 
 4. **Naive Bayes**  
 Deux variantes sont implémentées avec `scikit-learn` :
@@ -39,7 +39,15 @@ En pratique, la version caractères n-grammes donne les meilleurs résultats sur
 5. **Régression logistique**  
 Une régression logistique multinomiale est entraînée sur des vecteurs bag-of-words (`CountVectorizer`). Elle permet de comparer un autre classifieur linéaire simple aux variantes de Naive Bayes.
 
-6. **Comparaison externe (`langid`)**  
+6. **Comptage de lettres (Naive Baseline)**  
+Ce n'est **pas un classifieur ML**, mais une heuristique naive. Elle compte simplement la fréquence de chaque lettre (a-z) dans le texte et les compare avec les profils de lettres de chaque langue. Cette méthode:
+- **N'utilise pas d'apprentissage** : elle compare directement les fréquences
+- **N'est pas kNN** : pas de voisins, pas de voting, pas de modèle appris
+- **Sert de baseline** : montre pourquoi les approches ML sont nécessaires
+
+Cette option est inspirée de la solution naïve à laquelle nous avons pensé avant d'étudier les méthodes spécifiques au TAL.
+
+7. **Comparaison externe (`langid`)**  
 On teste aussi `langid`, une bibliothèque externe prête à l’emploi, pour disposer d’un point de comparaison supplémentaire. Cela permet de situer le niveau du prototype, même si ce type d’outil est moins contrôlable et pas toujours optimisé pour le corpus du projet.
 
 ---
@@ -58,9 +66,10 @@ On teste aussi `langid`, une bibliothèque externe prête à l’emploi, pour di
 │   ├── knn_train.py
 │   ├── knn_predict.py
 │   ├── knn_train_with_tfidf.py
+│   ├── letter_counter.py
 │   ├── naive_bayes_simple.py
 │   ├── naive_bayes_with_ngrams.py
-│   └── logistic_regression.py
+│   ├── logistic_regression.py
 ├── models/
 ├── results/
 ├── tools/
@@ -132,27 +141,22 @@ python eval.py results/dev-pred-naivebayes-char-3gram-max2000.txt dev.txt
 ```
 
 ### kNN
-Décommenter l'import dans knn_predict.py: from knn_train import DocCollection  
-Commenter l'import dans knn_predict.py : from knn_train_with_tfidf import DocCollection  
 
-Pour activer l'option de factorisation des textes il faut appeler la méthode docCollection.fact_colletion() dans knn_predict.py
-Pour compter des lettres il faut utiliser docCollection = DocCollection(trainfilename, True) dans knn_predict.py
-Les endroits où effectuer ces changements sont balisés par des commentaires dans le fichier en question
+Par défaut, le modèle rassemble tous les textes de chaque langue dans un seul document (factorisation). Pour obtenir des modèles sans factorisation, commenter l'appel `docCollection.fact_colletion()` dans `knn_predict.py`.
 
 ```bash
 python classifiers/knn_train.py train.txt
-python classifiers/knn_predict.py dev.txt models/<nom du modèle à utiliser>
+python classifiers/knn_predict.py dev.txt models/model-train-gathered.pkl
 python eval.py results/dev-pred-knearest-gathered.txt dev.txt
 ```
 
 ### kNN avec TF-IDF
-Commenter l'import dans knn_predict.py: from knn_train import DocCollection  
-Décommenter l'import dans knn_predict.py : from knn_train_with_tfidf import DocCollection  
 
-On peut toujours continuer à utiliser les autres variantes cumulativement avec celle-ci de la même façon, mais nous avons choisi de ne pas tester ces combinaisons car nous trouvons que cela manque d'intérêt. 
+Pour utiliser la variante TF-IDF à la place de kNN standard, il faut commenter l'import de `knn_train` et décommenter l'import de `knn_train_with_tfidf` dans `knn_predict.py`.
+
 ```bash
 python classifiers/knn_train_with_tfidf.py train.txt
-python classifiers/knn_predict.py dev.txt models/<nom du modèle à utiliser>
+python classifiers/knn_predict.py dev.txt models/model-train-idf-gathered.pkl
 python eval.py results/dev-pred-knearest-idf-gathered.txt dev.txt
 ```
 
@@ -168,6 +172,13 @@ python eval.py results/dev-pred-logreg.txt dev.txt
 ```bash
 python tools/test_langid.py dev.txt > results/dev-pred-langid.txt
 python eval.py results/dev-pred-langid.txt dev.txt
+```
+
+### Letter Counter (Naive Baseline)
+
+```bash
+python classifiers/letter_counter.py train.txt dev.txt
+python eval.py results/dev-pred-letter-count.txt dev.txt
 ```
 
 ---
@@ -228,7 +239,7 @@ Mesures observées sur `dev.txt` :
 | kNN TF-IDF (et rassemblé) | `results/dev-pred-knearest-idf-gathered.txt` | 94.30% (298/316) |
 | Régression logistique (bag-of-words) | `results/dev-pred-logreg.txt` | 96.52% (305/316) |
 | langid.py | `results/dev-pred-langid.txt` | 98.73% (312/316) |
-| Compte des lettres | `results/dev-gathered-pred-knearest-letter.txt`| 18.99% (60/316) |
+| Compte des lettres | `results/dev-pred-letter-count-gathered.txt`| 18.99% (60/316) |
 
 Nous avons également décidé de tester notre système sur le jeu de corpus de dialectes, qui sont nommés dialectes-train.txt et dialectes-dev.txt dans notre projet. Voici un tableau synthétisant les résultats obtenus :
 
@@ -246,7 +257,7 @@ Nous avons également décidé de tester notre système sur le jeu de corpus de 
 | kNN rassemblé | `results/dialectes_dev-pred-knearest-gathered.txt` | 57.73% (13856/24000) |
 | kNN TF-IDF (et rassemblé) | `results/dialectes_dev-pred-knearest-idf-gathered.txt` | 66.67% (16000/24000) |
 | Régression logistique | `results/dialectes_dev-pred-logreg.txt` | 84.62% (20308/24000) |
-| Compteur de lettres | `results/dialectes_dev-pred-knearest-gathered-letter.txt` | 12.65% (3037/24000) |
+| Compteur de lettres | `results/dialectes_dev-pred-letter-count-gathered.txt` | 12.65% (3037/24000) |
 
 
 On observe que les modèles Naive Bayes (simple bag-of-words ou n-grammes de caractères) obtiennent les meilleures performances sur ce jeu de données, légèrement devant les autres classifieurs linéaires ou à base de k plus proches voisins. Les méthodes externes comme `langid.py` restent compétitives, mais sans avantage clair par rapport aux modèles entraînés spécifiquement sur ce corpus.

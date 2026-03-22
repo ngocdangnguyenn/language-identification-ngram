@@ -29,6 +29,7 @@ if __name__ == "__main__" : # python way to declare "main" function
   suff_supplement = ""
   for particle in modelName[1:] : 
     suff_supplement += "-" + particle
+    
 with open(devfilename, "r", encoding="utf-8") as fic, open("results/" + truename + "-pred-knearest" + suff_supplement + ".txt", "w", encoding="utf-8") as fic_dest:
   for file in fic :
     whole_tab = file.split("\t")
