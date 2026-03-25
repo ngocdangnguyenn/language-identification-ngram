@@ -1,0 +1,272 @@
+# Identification Automatique des Langues
+### Auteurs
+- ACHOURI Doria
+- NGUYEN Ngoc Dang Nguyen
+
+Ce projet a été réalisé dans le cadre du cours **Traitement Automatique des Langues** à Aix-Marseille Université. Il traite une tâche de classification supervisée : identifier automatiquement la langue d’un texte court à partir d’exemples annotés.
+
+Le corpus est extrait d’Europarl, qui contient des transcriptions multilingues de débats du Parlement européen. Le choix méthodologique est volontairement centré sur des approches classiques, légères et interprétables, afin de comparer des modèles reproductibles sans recourir au deep learning.
+
+---
+
+## Objectif
+
+L’objectif est de prédire la langue d’un texte parmi 21 catégories ISO (`bg`, `cs`, `da`, `de`, `el`, `en`, `es`, `et`, `fi`, `fr`, `hu`, `it`, `lt`, `lv`, `nl`, `pl`, `pt`, `ro`, `sk`, `sl`, `sv`).
+
+Le système est entraîné sur `train.txt`, comparé sur `dev.txt`, puis appliqué à `test.txt` où les labels sont remplacés par `??`. Le format de sortie attendu est identique au format d’entrée : texte original + tabulation + catégorie prédite.
+
+L’évaluation est réalisée avec l’accuracy via `eval.py`, ce qui permet de mesurer simplement la proportion de prédictions correctes.
+
+---
+
+## Méthodes implémentées
+
+1. **Baseline aléatoire**  
+Cette méthode assigne une langue au hasard parmi les 21 classes possibles. Elle ne fait aucun apprentissage, mais elle sert de repère minimal pour vérifier que les autres systèmes apportent un vrai gain.
+
+2. **Intersection de n-grammes**  
+On extrait des n-grammes (de caractères ou de mots) fréquents pour chaque langue dans `train.txt`, puis on choisit la langue qui a l’intersection la plus forte avec le texte à classer. L’approche est simple et lisible, mais sa qualité dépend fortement du choix des paramètres (`n`, `top_k`).
+
+3. **k plus proches voisins (kNN)**  
+Chaque texte est représenté sous forme de vecteur de fréquences avec un comptage de mots ou de lettres, puis comparé aux exemples d’entraînement avec une similarité cosinus. La classe est décidée à partir des voisins les plus proches. Cette méthode est une bonne référence classique, mais elle est plus coûteuse en prédiction. Afin d'éviter cela, nous avons implémenté la possibilité de rassembler tous les textes de chaque catégorie dans un seul document pour chaque collection. Une variante avec pondération TF-IDF est également testée, ainsi qu'une variante ne comptant que les occurences de chaque lettre. Cette dernière option est inspirée de la solution naïve dont nous avons eu l'idée avant de commencer à étudier les méthodes spécifiques au TAL.
+
+4. **Naive Bayes**  
+Deux variantes sont implémentées avec `scikit-learn` :
+- une version simple en bag-of-words (`naive_bayes_simple.py`) avec `CountVectorizer` par défaut ;
+- une version à base de n-grammes de caractères ou de mots (`naive_bayes_with_ngrams.py`).  
+En pratique, la version caractères n-grammes donne les meilleurs résultats sur ce jeu de données.
+
+5. **Régression logistique**  
+Une régression logistique multinomiale est entraînée sur des vecteurs bag-of-words (`CountVectorizer`). Elle permet de comparer un autre classifieur linéaire simple aux variantes de Naive Bayes.
+
+6. **Comparaison externe (`langid`)**  
+On teste aussi `langid`, une bibliothèque externe prête à l’emploi, pour disposer d’un point de comparaison supplémentaire. Cela permet de situer le niveau du prototype, même si ce type d’outil est moins contrôlable et pas toujours optimisé pour le corpus du projet.
+
+---
+
+## Structure du projet
+
+```text
+.
+├── data/
+│   ├── europarl-langues/
+│   │   ├── train.txt
+│   │   ├── dev.txt
+│   │   └── test.txt
+│   └── europarl-dialectes/
+│       ├── dialectes_train.txt
+│       └── dialectes_dev.txt
+├── src/
+│   ├── baseline.py
+│   ├── eval.py
+│   └── classifiers/
+│       ├── intersection.py
+│       ├── knn_train.py
+│       ├── knn_predict.py
+│       ├── knn_train_with_tfidf.py
+│       ├── naive_bayes_simple.py
+│       ├── naive_bayes_with_ngrams.py
+│       └── logistic_regression.py
+├── models/
+├── results/
+├── tools/
+│   └── test_langid.py
+└── CONSIGNES_SUJET.md
+```
+
+---
+
+## Installation
+
+### Dépendances
+
+```bash
+pip install numpy nltk sacremoses scikit-learn langid
+```
+
+Téléchargement NLTK (première exécution) :
+
+```bash
+python -c "import nltk; nltk.download('punkt')"
+```
+
+---
+
+## Format des données
+
+Chaque ligne suit le format :
+
+```text
+<texte>\t<label>
+```
+
+- `train.txt` / `dev.txt` : labels connus
+- `test.txt` : label `??` à remplacer par la prédiction
+
+---
+
+## Exécution rapide
+
+Toutes les commandes se lancent depuis la racine du projet.
+
+### Baseline
+
+```bash
+python src/baseline.py data/europarl-langues/dev.txt > results/baseline/dev-pred-baseline.txt
+python src/eval.py results/baseline/dev-pred-baseline.txt data/europarl-langues/dev.txt
+```
+
+### Intersection (char 3-gram, top 100)
+
+```bash
+python src/classifiers/intersection.py data/europarl-langues/train.txt data/europarl-langues/dev.txt char 3 100
+python src/eval.py results/intersection/dev-pred-intersection-char-3gram-top100.txt data/europarl-langues/dev.txt
+```
+
+### Naive Bayes simple (bag-of-words)
+
+```bash
+python src/classifiers/naive_bayes_simple.py data/europarl-langues/train.txt data/europarl-langues/dev.txt
+python src/eval.py results/naive_bayes/dev-pred-naivebayes-bow.txt data/europarl-langues/dev.txt
+```
+
+### Naive Bayes n-grammes (char 3-gram, 2000 features)
+
+```bash
+python src/classifiers/naive_bayes_with_ngrams.py data/europarl-langues/train.txt data/europarl-langues/dev.txt char 3 2000
+python src/eval.py results/naive_bayes/dev-pred-naivebayes-char-3gram-max2000.txt data/europarl-langues/dev.txt
+```
+
+### kNN
+Décommenter l'import dans knn_predict.py: from knn_train import DocCollection  
+Commenter l'import dans knn_predict.py : from knn_train_with_tfidf import DocCollection  
+
+Pour activer l'option de factorisation des textes il faut appeler la méthode docCollection.fact_colletion() dans knn_predict.py
+Pour compter des lettres il faut utiliser docCollection = DocCollection(trainfilename, True) dans knn_predict.py
+Les endroits où effectuer ces changements sont balisés par des commentaires dans le fichier en question
+
+```bash
+python src/classifiers/knn_train.py data/europarl-langues/train.txt
+python src/classifiers/knn_predict.py data/europarl-langues/dev.txt models/<nom du modèle à utiliser>
+python src/eval.py results/knn/dev-pred-knearest-gathered.txt data/europarl-langues/dev.txt
+```
+
+### kNN avec TF-IDF
+Commenter l'import dans knn_predict.py: from knn_train import DocCollection  
+Décommenter l'import dans knn_predict.py : from knn_train_with_tfidf import DocCollection  
+
+On peut toujours continuer à utiliser les autres variantes cumulativement avec celle-ci de la même façon, mais nous avons choisi de ne pas tester ces combinaisons car nous trouvons que cela manque d'intérêt. 
+```bash
+python src/classifiers/knn_train_with_tfidf.py data/europarl-langues/train.txt
+python src/classifiers/knn_predict.py data/europarl-langues/dev.txt models/<nom du modèle à utiliser>
+python src/eval.py results/knn/dev-pred-knearest-idf-gathered.txt data/europarl-langues/dev.txt
+```
+
+### Régression logistique (bag-of-words)
+
+```bash
+python src/classifiers/logistic_regression.py data/europarl-langues/train.txt data/europarl-langues/dev.txt
+python src/eval.py results/logistic_regression/dev-pred-logreg.txt data/europarl-langues/dev.txt
+```
+
+### langid (comparaison)
+
+```bash
+python tools/test_langid.py data/europarl-langues/dev.txt
+python src/eval.py results/langid/dev-pred-langid.txt data/europarl-langues/dev.txt
+```
+
+---
+
+## Évaluation
+
+Le script [eval.py](src/eval.py) calcule l'accuracy entre un fichier de prédiction et un fichier de référence :
+
+```bash
+python src/eval.py <fichier_prediction> <fichier_reference>
+```
+
+Exemple :
+
+```bash
+python src/eval.py results/naive_bayes/dev-pred-naivebayes-char-3gram-max2000.txt data/europarl/dev.txt
+```
+
+---
+
+## Rajouter des corpus
+Il est tout à fait possible d'étendre le projet et de tester les modèles en utilisant d'autres corpus que ceux fournis. Cependant, afin que le nom des fichiers puisse correctement être récupéré par nos programmes lors de l'exécution du modèle choisi, il faut impérativement ajouter ces nouveux corpus à un dossier du dossier data. A cette fin, nous proposons un dossier générique other_datas. 
+
+## Générer la prédiction finale pour test.txt
+
+Point important pour la remise : **il faut un fichier de sortie**, pas seulement un affichage terminal.
+
+Exemple avec Naive Bayes n-grammes :
+
+```bash
+python src/classifiers/naive_bayes_with_ngrams.py data/europarl/train.txt data/europarl/test.txt char 3 2000
+```
+
+Fichier généré :
+
+- `results/naive_bayes/test-pred-naivebayes-char-3gram-max2000.txt`
+
+Ce fichier contient la même structure que `test.txt`, avec `??` remplacé par les labels prédits.
+
+Les fichiers générés ont un nom qui permet normalement d'aisément retrouver la source et la méthode utilisée pour les générer. Ils sont dans le fichier results pour la plupart, sauf les modèles qui seront générés dans le fichier models.
+
+---
+
+## Résultats obtenus
+
+Mesures observées sur `dev.txt` :
+
+| Méthode | Fichier de prédiction | Accuracy |
+|---|---|---:|
+| Baseline aléatoire | `results/baseline/dev-pred-baseline.txt` | 4.43% (14/316) |
+| Intersection char 2-gram, top 100 | `results/intersection/dev-pred-intersection-char-2gram-top100.txt` | 97.47% (308/316) |
+| Intersection char 3-gram, top 100 | `results/intersection/dev-pred-intersection-char-3gram-top100.txt` | 97.47% (308/316) |
+| Intersection char 4-gram, top 100 | `results/intersection/dev-pred-intersection-char-4gram-top100.txt` | 97.78% (309/316) |
+| Intersection bigrammes de mot, top 100 | `results/intersection/dev-pred-intersection-word-2gram-top100.txt` | 86.08% (272/316) |
+| Intersection trigrammes de mot, top 100 | `results/intersection/dev-pred-intersection-word-3gram-top100.txt` |  68.67% (217/316) |
+| Intersection 4-grammes de mot, top 100 | `results/intersection/dev-pred-intersection-word-4gram-top100.txt` | 48.73% (154/316) |
+| Naive Bayes simple (bag-of-words) | `results/naive_bayes/dev-pred-naivebayes-bow.txt` | **99.68%** (315/316) |
+| Naive Bayes n-grammes (char 3-gram, 2000) | `results/naive_bayes/dev-pred-naivebayes-char-3gram-max2000.txt` | 98.73% (312/316) |
+| kNN (modèle complet) | `results/knn/dev-pred-knearest.txt` | 94.94% (300/316) |
+| kNN (modèle rassemblé) | `results/knn/dev-pred-knearest-gathered.txt` | 93.35% (295/316) |
+| kNN TF-IDF (et rassemblé) | `results/knn/dev-pred-knearest-idf-gathered.txt` | 94.30% (298/316) |
+| Régression logistique (bag-of-words) | `results/logistic_regression/dev-pred-logreg.txt` | 96.52% (305/316) |
+| langid.py | `results/langid/dev-pred-langid.txt` | 98.73% (312/316) |
+| kNN avec vecteurs de lettres (et rassemblé) | `results/knn/dev-gathered-pred-knearest-letter.txt`| 18.99% (60/316) |
+
+Nous avons également décidé de tester notre système sur le jeu de corpus de dialectes, qui sont nommés dialectes-train.txt et dialectes-dev.txt dans notre projet. Voici un tableau synthétisant les résultats obtenus :
+
+| Méthode | Fichier de prédiction | Accuracy |
+|---|---|---:|
+| Intersection, bigrammes de caractères, top 100 | `results/intersection/dialectes_dev-pred-intersection-char-2gram-top100.txt` | 49.43% (11862/24000) |
+| Intersection, trigrammes de caractères, top 100 | `results/intersection/dialectes_dev-pred-intersection-char-3gram-top100.txt`| 49.23% (11814/24000) |
+| Intersection, 4-grammes de caractères, top 100 | `results/intersection/dialectes_dev-pred-intersection-char-4gram-top100.txt` | 13.43% (3224/24000) |
+| Intersection, bigrammes de mots, top 100 | `results/intersection/dialectes_dev-pred-intersection-word-2gram-top100.txt` | 40.42% (9701/24000) |
+| Intersection, trigrammes de mots, top 100 | `results/intersection/dialectes_dev-pred-intersection-word-3gram-top100.txt` | 21.19% (5086/24000) 
+| Intersection, 4-grammes de mots, top 100 | `results/intersection/dialectes_dev-pred-intersection-word-4gram-top100.txt` | 13.43% (3224/24000) |
+| Naives Bayes bag of words | `results/naive_bayes/dialectes_dev-pred-naivebayes-bow.txt` | **84.82% (20357/24000)** |
+| Naives Bayes n-grammes (char 3-gram, 2000) | `results/naive_bayes/dialectes_dev-pred-naivebayes-char-3gram-max2000.txt` | 74.51% (17883/24000) |
+| kNN complet | `results/knn/dialectes_dev-pred-knearest.txt` | 55.18% (13243/24000) |
+| kNN rassemblé | `results/knn/dialectes_dev-pred-knearest-gathered.txt` | 57.73% (13856/24000) |
+| kNN TF-IDF (et rassemblé) | `results/knn/dialectes_dev-pred-knearest-idf-gathered.txt` | 66.67% (16000/24000) |
+| Régression logistique | `results/logistic_regression/dialectes_dev-pred-logreg.txt` | 84.62% (20308/24000) |
+| kNN avec vecteur de lettres (et rassemblé) | `results/knn/dialectes_dev-pred-knearest-gathered-letter.txt` | 12.65% (3037/24000) |
+
+
+On observe que les modèles Naive Bayes (simple bag-of-words ou n-grammes de caractères) obtiennent les meilleures performances sur ce jeu de données, légèrement devant les autres classifieurs linéaires ou à base de k plus proches voisins. Les méthodes externes comme `langid.py` restent compétitives, mais sans avantage clair par rapport aux modèles entraînés spécifiquement sur ce corpus.
+
+Plusieurs constats peuvent être tirés de ce projet et des résultats que nous observons. Tout d'abord on peut constater qu'augmenter la taille des n-grammes de mots fait décroître les performances du modèle. Cela est peut-être notamment dû à la très faible longueur des textes, qui pourrait éventuellement rendre très dure la recherche d'un long n-gramme. Nous avons de plus constaté des ralentissements lorsqu'on utilisait kNN tel qu'implémenté en TP. Ainsi nous avons fait le choix d'implémenter un modèle qui rassemble tous les textes d'une même langue sous un même vecteur pour chacun des textes du corpus d'entraînement. Au vu de la perte négligeable de résultats comparée au gain en terme de vitesse de génération du fichier, nous avons choisi de faire nos autres tests qui utilisent kNN avec ce modèle rassemblé. De plus, nous avons remarqué que TF-IDF n'apporte pas d'améliorations significatives dans le cas du corpus de classification de langues standard mais produit des améliorations assez bonnes sur le corpus de dialectes ; on peut conjecturer que cela est notamment dû au fait que les langues sont très différentes entre elles pour la plupart, et donc que donner plus de poids aux mots les plus rares n'est pas un facteur d'amélioration significatif, et que c'est au contraire utile pour des dialectes pour lesquels les mots les plus rares statistiquement permettent de mieux identifier la langue d'un texte. On peut également noter que le compte de lettres donne des prédictions assez limitées par rapport aux autres modèles que nous avons développés.  
+
+En raison des très bons résultats de Naives Bayes, nous avons choisi d'exécuter  ce modèle sur le corpus de test (test.txt). 
+
+---
+
+## Limitations
+
+Le prototype présente quelques limites. Le corpus utilisé contient des phrases relativement bien formées ; les performances peuvent donc baisser sur des textes plus bruités (messages courts, réseaux sociaux, fautes fréquentes). Le système ne traite pas explicitement les cas de mélange de langues dans une même phrase. Enfin, la méthode kNN devient plus coûteuse en temps de calcul lorsque la taille du corpus augmente.
+
