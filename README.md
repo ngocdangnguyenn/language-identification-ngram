@@ -189,7 +189,7 @@ python src/eval.py <fichier_prediction> <fichier_reference>
 Exemple :
 
 ```bash
-python src/eval.py results/naive_bayes/dev-pred-naivebayes-char-3gram-max2000.txt data/europarl/dev.txt
+python src/eval.py results/naive_bayes/dev-pred-naivebayes-char-3gram-max2000.txt data/europarl-langues/dev.txt
 ```
 
 ---
@@ -204,7 +204,7 @@ Point important pour la remise : **il faut un fichier de sortie**, pas seulement
 Exemple avec Naive Bayes n-grammes :
 
 ```bash
-python src/classifiers/naive_bayes_with_ngrams.py data/europarl/train.txt data/europarl/test.txt char 3 2000
+python src/classifiers/naive_bayes_with_ngrams.py data/europarl-langues/train.txt data/europarl-langues/test.txt char 3 2000
 ```
 
 Fichier généré :
